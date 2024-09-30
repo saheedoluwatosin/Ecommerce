@@ -59,7 +59,7 @@ const login_admin = async (request,response)=>{
 }
 
 
-const addproduct = async (request,response)=>{
+const addproduct = async (request,response,next)=>{
     const {product,name,quantity,categories} = request.body
     try {
         const new_product = new Product({product,name,quantity,categories})
