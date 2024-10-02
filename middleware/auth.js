@@ -1,5 +1,5 @@
 const { Admin } = require("../Model/user")
-
+const jwt = require('jsonwebtoken')
 const validtokenadmin = async (request,response,next)=>
 {
 
@@ -24,7 +24,7 @@ const validtokenadmin = async (request,response,next)=>
         request.admin = admin 
         next()
     } catch (error) {
-        
+        return response.status(500).json({message:error.message})
     }
     
 }

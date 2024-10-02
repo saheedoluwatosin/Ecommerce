@@ -1,3 +1,4 @@
+const { response } = require("express")
 const Product = require("../Model/product")
 const { User, Admin } = require("../Model/user")
 const bcrypt = require("bcrypt")
@@ -59,7 +60,7 @@ const login_admin = async (request,response)=>{
 }
 
 
-const addproduct = async (request,response,next)=>{
+const addproduct = async (request,response)=>{
     const {product,name,quantity,categories} = request.body
     try {
         const new_product = new Product({product,name,quantity,categories})
@@ -77,8 +78,82 @@ const addproduct = async (request,response,next)=>{
 }
 
 
+const register_user = async (request,response)=>{
+
+    try {
+        const {name,email,password}= request.body
+        const already = await User.findOne({email})
+        if(already){
+            return response.status(401).json({message:"Kindly please login"})
+        }
+        if(password.length < 8){
+            return response.status(404).json({message:"Password should be atleast 8 character"})
+        }
+    
+        const hashed = await bcrypt.hash(password,12)
+    
+        const new_user = new User({name,email,password:hashed})
+        await new_user.save()
+        return response.status(200).json({message:"Welcome User",
+            new_user
+        })
+    
+    } catch (error) {
+        return response.status(500).json({message:error.message})
+    }
+
+
+
+
+}
+
+
+
+const login_user = async (request,response)=>{
+    const {email,password} = request.body
+    const find  = await User.findOne({email})
+    if(!find){
+        return response.status(404).json({
+            message:"User not Found"
+
+        })
+    }
+    const compard = await bcrypt.compare(password,find.password)
+    if(!compard){
+        return response.status(404).json({message:"Incorrect password or email"})
+    }
+
+    const accessToken = jwt.sign({find},`${process.env.ACCESS_TOKEN}`,{expiresIn:"7d"})
+    return response.status(200).json({
+        message:"Welcome",
+        user:find._id,
+        accessToken
+    })
+}
+
+
+const allproduct = async (request,response)=>{
+    try {
+        const allProduct = await Product.find()
+        return response.status(200).json({message:"Products",
+            allProduct
+        })
+    } catch (error) {
+        return response.status(500).json({message:error.message})
+    }
+  
+}
+
+const addCart = (request,response)=>{
+
+}
+
+
 module.exports = {
     addproduct,
     register_admin,
-    login_admin
+    login_admin,
+    register_user,
+    login_user,
+    allproduct
 }
