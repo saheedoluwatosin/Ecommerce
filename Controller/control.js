@@ -3,6 +3,8 @@ const Product = require("../Model/product")
 const { User, Admin } = require("../Model/user")
 const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
+const pagination = require("../utilies/Utilies")
+const Cart = require("../Model/Cart")
 
 
 
@@ -144,9 +146,67 @@ const allproduct = async (request,response)=>{
   
 }
 
-const addCart = (request,response)=>{
-
+const search_product = async (request,response)=>{
+    const {page,limit,skip} = pagination(request)
+    const allproduct = await Product.find().limit(limit).skip(skip).sort("-createdAt")
+    return response.status(200).json({
+        message:"Success",
+        product : allproduct
+    })
 }
+
+
+const add_to_cart = async (request,response)=>{
+    
+    try {
+        const {productId,quantity} = request.body
+        const userId = request.already._id
+        const product = await Product.findById(productId)
+        if(!product){
+            return response.status(400).json({message:"Product not found"})
+        }
+
+        if(quantity <= 0 || quantity > product.quantity){
+            return response.status(400).json({
+                message:`invalid quantity. Only ${product.quantity} items available`
+            })
+        }
+
+
+        let cart = await Cart.findOne({user:already._id})
+        if(!cart){
+            cart = new Cart({user:userId, product:[]})
+        }
+
+        const existingProductIndex = cart.products.findIndex(
+            item => item.product.toString() === productId
+          );
+          if (existingProductIndex > -1) {
+            // If the product is already in the cart, update the quantity
+            cart.products[existingProductIndex].quantity += quantity;
+      
+            // Ensure the total quantity does not exceed available stock
+            if (cart.products[existingProductIndex].quantity > product.stock) {
+              return response.status(400).json({
+                error: `Total quantity exceeds available stock. Only ${product.stock} items available.`,
+              });
+            }
+          } else {
+            // Add new product with the specified quantity
+            cart.products.push({ product: productId, quantity });
+          }
+      
+          // Save the cart
+          await cart.save();
+          return response.status(200).json({message:"product added to cart",
+            cart
+          })
+    } catch (error) {
+        return response.status(500).json({error:error.message})
+    }
+}
+
+
 
 
 module.exports = {
@@ -155,5 +215,7 @@ module.exports = {
     login_admin,
     register_user,
     login_user,
-    allproduct
+    allproduct,
+    search_product,
+    add_to_cart
 }
